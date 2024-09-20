@@ -140,8 +140,8 @@ const route0 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProper
 }, Symbol.toStringTag, { value: "Module" }));
 const meta = () => {
   return [
-    { title: "New Remix App" },
-    { name: "description", content: "Welcome to Remix!" }
+    { title: "MyFinanceApp" },
+    { name: "description", content: "Welcome to the danger!" }
   ];
 };
 function Index() {
@@ -149,7 +149,7 @@ function Index() {
     /* @__PURE__ */ jsxs("header", { className: "flex flex-col items-center gap-9", children: [
       /* @__PURE__ */ jsxs("h1", { className: "leading text-2xl font-bold text-gray-800 dark:text-gray-100", children: [
         "Welcome to ",
-        /* @__PURE__ */ jsx("span", { className: "sr-only", children: "Remix" })
+        /* @__PURE__ */ jsx("span", { className: "sr-only", children: "DANGER" })
       ] }),
       /* @__PURE__ */ jsxs("div", { className: "h-[144px] w-[434px]", children: [
         /* @__PURE__ */ jsx(
@@ -288,7 +288,7 @@ const route1 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProper
   default: Index,
   meta
 }, Symbol.toStringTag, { value: "Module" }));
-const serverManifest = { "entry": { "module": "/assets/entry.client-ZUd_ivrw.js", "imports": ["/assets/jsx-runtime-56DGgGmo.js", "/assets/components-IbwLOKDL.js"], "css": [] }, "routes": { "root": { "id": "root", "parentId": void 0, "path": "", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/root-BJRh3OzC.js", "imports": ["/assets/jsx-runtime-56DGgGmo.js", "/assets/components-IbwLOKDL.js"], "css": ["/assets/root-CuTOgBRU.css"] }, "routes/_index": { "id": "routes/_index", "parentId": "root", "path": void 0, "index": true, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_index-DnPs6FvX.js", "imports": ["/assets/jsx-runtime-56DGgGmo.js"], "css": [] } }, "url": "/assets/manifest-5043a0c5.js", "version": "5043a0c5" };
+const serverManifest = { "entry": { "module": "/assets/entry.client-ZUd_ivrw.js", "imports": ["/assets/jsx-runtime-56DGgGmo.js", "/assets/components-IbwLOKDL.js"], "css": [] }, "routes": { "root": { "id": "root", "parentId": void 0, "path": "", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/root-BJRh3OzC.js", "imports": ["/assets/jsx-runtime-56DGgGmo.js", "/assets/components-IbwLOKDL.js"], "css": ["/assets/root-CuTOgBRU.css"] }, "routes/_index": { "id": "routes/_index", "parentId": "root", "path": void 0, "index": true, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_index-vuQ_cZBD.js", "imports": ["/assets/jsx-runtime-56DGgGmo.js"], "css": [] } }, "url": "/assets/manifest-04e8b5cc.js", "version": "04e8b5cc" };
 const mode = "production";
 const assetsBuildDirectory = "build\\client";
 const basename = "/";

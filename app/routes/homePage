@@ -1,14 +1,5 @@
-import type { MetaFunction } from "@remix-run/node";
-import home
 
-export const meta: MetaFunction = () => {
-  return [
-    { title: "MyFinances" },
-    { name: "description", content: "Welcome to Remix!" },
-  ];
-};
-
-export default function Index() {
+export default function homePage() {
   return (
     <div className="flex h-screen items-center justify-center">
       <div className="flex flex-col items-center gap-16">
