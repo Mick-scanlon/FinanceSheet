@@ -1,0 +1,61 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model expenses {
+  id             Int       @id
+  category       String?   @db.VarChar
+  description    String?
+  user_id        Int?
+  amount         Float?
+  date           DateTime? @db.Timestamp(6)
+  payment_method Int?
+  recurring      Boolean?
+  users          users?    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model income {
+  id           Int      @id
+  amount_gross Float
+  amount_net   Float
+  amount_tax   Float
+  paid_date    DateTime @db.Timestamp(6)
+  user_id      Int
+  users        users    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([id, paid_date])
+  @@index([id, paid_date], map: "income_id_paid_date_idx1")
+}
+
+model payment_methods {
+  user_id      Int
+  type         String? @db.VarChar
+  payment_name String  @db.VarChar
+  users        users   @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([user_id, payment_name])
+}
+
+model shared_users {
+  user_one    Int
+  user_two    Int
+  one_percent Float?
+  two_percent Float?
+
+  @@id([user_one, user_two])
+}
+
+model users {
+  id              Int               @id
+  username        String?           @db.VarChar
+  password        String?           @db.VarChar
+  created_at      DateTime?         @db.Timestamp(6)
+  expenses        expenses[]
+  income          income[]
+  payment_methods payment_methods[]
+}
