@@ -1,4 +1,5 @@
 import { useNavigate } from "@remix-run/react";
+import { blueButtonCss, redButtonCss } from "../constants";
 
 export default function homePage() {
   const navigate = useNavigate();
@@ -6,10 +7,7 @@ export default function homePage() {
     <div className="flex h-screen items-top justify-center">
       <div className="flex flex-col items-center gap-16">
         <header className="flex flex-col items-center gap-9">
-          <button
-            onClick={() => navigate("/")}
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded float-left"
-          >
+          <button onClick={() => navigate("/")} className={redButtonCss}>
             Logout
           </button>
           <h1 className="leading text-2xl font-bold text-gray-800 dark:text-gray-100">
@@ -19,13 +17,13 @@ export default function homePage() {
         <div className="h-[144px] w-[434px]">
           <button
             onClick={() => navigate("/enterExpense")}
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded float-left"
+            className={blueButtonCss}
           >
             Add Expense
           </button>
           <button
             onClick={() => navigate("/enterIncome")}
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded float-right"
+            className={blueButtonCss}
           >
             Add Income
           </button>
