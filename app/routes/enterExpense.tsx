@@ -1,5 +1,5 @@
 import { useNavigate } from "@remix-run/react";
-import { textInputCss } from "../constants";
+import { redButtonCss, blueButtonCss, textInputCss } from "../constants";
 
 export default function enterExpense() {
   const navigate = useNavigate();
@@ -61,7 +61,16 @@ export default function enterExpense() {
               type="radio"
             ></input>
           </label>
+          <button type="submit" className={blueButtonCss}>
+            Submit
+          </button>
         </form>
+        <button
+          onClick={() => navigate("../homePage")}
+          className={redButtonCss}
+        >
+          Cancel
+        </button>
       </div>
     </div>
   );
