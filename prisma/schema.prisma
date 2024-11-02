@@ -8,22 +8,24 @@ datasource db {
 }
 
 model expenses {
-  id             Int       @id
+  id             Int       @id @default(autoincrement())
   category       String?   @db.VarChar
   description    String?
   user_id        Int?
   amount         Float?
-  date           DateTime? @db.Timestamp(6)
+  date           DateTime? @db.Date
   payment_method Int?
   recurring      Boolean?
+  shared         String?
   users          users?    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model income {
-  id           Int      @id
+  id           Int      @id @default(autoincrement())
   amount_gross Float
-  amount_net   Float
   amount_tax   Float
+  amount_post  Float
+  amount_pre   Float
   paid_date    DateTime @db.Timestamp(6)
   user_id      Int
   users        users    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -51,7 +53,7 @@ model shared_users {
 }
 
 model users {
-  id              Int               @id
+  id              Int               @id @default(autoincrement())
   username        String?           @db.VarChar
   password        String?           @db.VarChar
   created_at      DateTime?         @db.Timestamp(6)
