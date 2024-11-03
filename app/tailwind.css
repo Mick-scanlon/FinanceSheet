@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+table, td, td, th {
+  border: 1px solid white;
+}
+
 html,
 body {
   @apply bg-white dark:bg-gray-950;

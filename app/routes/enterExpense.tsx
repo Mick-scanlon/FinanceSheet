@@ -25,15 +25,11 @@ export async function action({ request }: ActionFunctionArgs) {
     recurring,
     shared,
   } = expenseSchema.parse(await request.formData());
-  // here is where write and update will be called
+
   const prisma = new PrismaClient();
 
+  //change once session storage works
   const user_id = 1;
-  // const amount = +body.get("cost");
-  // const description = body.get("description") as string;
-  // const category = body.get("category") as string;
-  // const payment_method = 0;
-  // const recurring = false;
 
   const createExpense = await prisma.expenses.create({
     data: {
@@ -135,13 +131,13 @@ export default function enterExpense() {
           <button type="submit" className={blueButtonCss}>
             Submit
           </button>
+          <button
+            onClick={() => navigate("../homePage")}
+            className={redButtonCss}
+          >
+            Cancel
+          </button>
         </form>
-        <button
-          onClick={() => navigate("../homePage")}
-          className={redButtonCss}
-        >
-          Cancel
-        </button>
       </div>
     </div>
   );
