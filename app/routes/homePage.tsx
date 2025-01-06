@@ -1,24 +1,59 @@
 import { useLoaderData, useNavigate } from "@remix-run/react";
-import { blueButtonCss, redButtonCss } from "../constants";
+import {
+  blueButtonCss,
+  expenseHeaders,
+  incomeHeaders,
+  redButtonCss,
+} from "../constants";
 import { PrismaClient } from "@prisma/client";
 import { zfd } from "zod-form-data";
 import { z } from "zod";
-import ExpenseTable from "../components/ExpenseTable";
+import BaseTable from "../components/BaseTable";
 
 export const loader = async () => {
+  var expenseArray: any[] = [];
+  var incomeArray: any[] = [];
+
   const prisma = new PrismaClient();
   const userId = 1;
-  // get expenses
+  // get expenses, order of select statement is important
   const expenses = await prisma.expenses.findMany({
     where: { user_id: userId },
+    select: {
+      date: true,
+      category: true,
+      amount: true,
+      description: true,
+      shared: true,
+      recurring: true,
+    },
   });
-  return expenses;
+  expenses.forEach((expense) => expenseArray.push(Object.entries(expense)));
+  // get expenses, order of select statement is important
+  const income = await prisma.income.findMany({
+    where: { user_id: userId },
+    select: {
+      paid_date: true,
+      amount_gross: true,
+      amount_pre: true,
+      amount_tax: true,
+      amount_post: true,
+    },
+  });
+  income.forEach((income) => incomeArray.push(Object.entries(income)));
+
+  return [expenses, income];
 };
 
 export default function homePage() {
   const navigate = useNavigate();
-  const data = useLoaderData<typeof loader>();
+  const expenses = useLoaderData<typeof loader>()[0];
+  const income = useLoaderData<typeof loader>()[1];
+  var expenseArray: any[] = [];
+  var incomeArray: any[] = [];
 
+  income.forEach((income) => incomeArray.push(Object.entries(income)));
+  expenses.forEach((expense) => expenseArray.push(Object.entries(expense)));
   return (
     <div className="flex h-screen items-top justify-center">
       <div className="flex flex-col items-center gap-10">
@@ -41,7 +76,12 @@ export default function homePage() {
             Add Income
           </button>
         </div>
-        <ExpenseTable expenses={data} />
+        <div>
+          <h1>Expenses</h1>
+          <BaseTable content={expenseArray} headers={expenseHeaders} />
+          <h1>Income</h1>
+          <BaseTable content={incomeArray} headers={incomeHeaders} />
+        </div>
         <button onClick={() => navigate("/")} className={redButtonCss}>
           Logout
         </button>

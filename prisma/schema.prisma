@@ -21,14 +21,14 @@ model expenses {
 }
 
 model income {
-  id           Int      @id @default(autoincrement())
+  id           Int        @id @default(autoincrement())
   amount_gross Float
   amount_tax   Float
   amount_post  Float
   amount_pre   Float
-  paid_date    DateTime @db.Timestamp(6)
+  paid_date    DateTime?  @db.Date
   user_id      Int
-  users        users    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users        users      @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([id, paid_date])
   @@index([id, paid_date], map: "income_id_paid_date_idx1")
