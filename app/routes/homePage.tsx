@@ -1,88 +1,100 @@
 import { useLoaderData, useNavigate } from "@remix-run/react";
 import {
   blueButtonCss,
-  expenseHeaders,
-  incomeHeaders,
+  previewExpenseTableHeaders,
+  previewIncomeTableHeaders,
   redButtonCss,
 } from "../constants";
-import { PrismaClient } from "@prisma/client";
-import { zfd } from "zod-form-data";
-import { z } from "zod";
 import BaseTable from "../components/BaseTable";
+import {
+  DetermineLeftToSpend,
+  getCurrentMonthExpenses,
+  getCurrentMonthIncome,
+  getLastMonthIncome,
+} from "../services/CalculationService";
+import Header from "../components/Header";
 
 export const loader = async () => {
-  var expenseArray: any[] = [];
-  var incomeArray: any[] = [];
-
-  const prisma = new PrismaClient();
-  const userId = 1;
-  // get expenses, order of select statement is important
-  const expenses = await prisma.expenses.findMany({
-    where: { user_id: userId },
-    select: {
-      date: true,
-      category: true,
-      amount: true,
-      description: true,
-      shared: true,
-      recurring: true,
-    },
-  });
-  expenses.forEach((expense) => expenseArray.push(Object.entries(expense)));
-  // get expenses, order of select statement is important
-  const income = await prisma.income.findMany({
-    where: { user_id: userId },
-    select: {
-      paid_date: true,
-      amount_gross: true,
-      amount_pre: true,
-      amount_tax: true,
-      amount_post: true,
-    },
-  });
-  income.forEach((income) => incomeArray.push(Object.entries(income)));
-
-  return [expenses, income];
+  return {
+    currMonthExpenses: await getCurrentMonthExpenses(),
+    currMonthIncome: await getCurrentMonthIncome(),
+    lastMonthIncome: await getLastMonthIncome(),
+    sillyNumber: await DetermineLeftToSpend(),
+  };
 };
 
 export default function homePage() {
   const navigate = useNavigate();
-  const expenses = useLoaderData<typeof loader>()[0];
-  const income = useLoaderData<typeof loader>()[1];
-  var expenseArray: any[] = [];
-  var incomeArray: any[] = [];
+  const expenses = useLoaderData<typeof loader>().currMonthExpenses;
+  const income = useLoaderData<typeof loader>().lastMonthIncome;
+  const sillyNumber = useLoaderData<typeof loader>().sillyNumber;
 
-  income.forEach((income) => incomeArray.push(Object.entries(income)));
-  expenses.forEach((expense) => expenseArray.push(Object.entries(expense)));
   return (
     <div className="flex h-screen items-top justify-center">
-      <div className="flex flex-col items-center gap-10">
-        <header className="flex mt-5 flex-col items-center gap-9">
-          <h1 className="leading text-2xl font-bold text-gray-800 dark:text-gray-100">
-            MyFinanceApp
-          </h1>
-        </header>
-        <div className="h-[44px] w-[300px]">
+      <div className="flex flex-col items-center gap-5 w-[300px]">
+        <Header sillyNumber={sillyNumber} />
+        <h1 className="leading text-xl font-bold text-gray-800 dark:text-gray-100">
+          Add One-Time
+        </h1>
+        <div className="h-[44px] space-x-5">
           <button
-            onClick={() => navigate("/enterExpense")}
+            onClick={() => navigate("/enterOneTime/expense")}
             className={blueButtonCss + " float-left"}
           >
-            Add Expense
+            Expense
           </button>
           <button
-            onClick={() => navigate("/enterIncome")}
+            onClick={() => navigate("/enterOneTime/income")}
             className={blueButtonCss + " float-right"}
           >
-            Add Income
+            Income
           </button>
         </div>
-        <div>
-          <h1>Expenses</h1>
-          <BaseTable content={expenseArray} headers={expenseHeaders} />
-          <h1>Income</h1>
-          <BaseTable content={incomeArray} headers={incomeHeaders} />
+        {/* <h1 className="text-lg">Add Recurring</h1>
+        <div className="h-[44px] space-x-5">
+          <button
+            onClick={() => navigate("/enterRecurring/expense")}
+            className={blueButtonCss + " float-left"}
+          >
+            Expense
+          </button>
+          <button
+            onClick={() => navigate("/enterRecurring/income")}
+            className={blueButtonCss + " float-right"}
+          >
+            Income
+          </button>
         </div>
-        <button onClick={() => navigate("/")} className={redButtonCss}>
+        <div className="flex flex-col items-center ">
+          <h1 className="text-lg">Expenses</h1>
+          <BaseTable
+            content={expenses}
+            headers={previewExpenseTableHeaders}
+            type="expense"
+          />
+          <button
+            onClick={() => navigate("/viewExpenses")}
+            className={blueButtonCss + " mt-2"}
+          >
+            View All Expenses
+          </button>
+          <h1 className="text-lg mt-4">Income</h1>
+          <BaseTable
+            content={income}
+            headers={previewIncomeTableHeaders}
+            type="income"
+          />
+          <button
+            onClick={() => navigate("/viewIncome")}
+            className={blueButtonCss + " mt-2"}
+          >
+            View All Income
+          </button>
+        </div> */}
+        <button
+          onClick={() => navigate("/")}
+          className={redButtonCss + " mt-5"}
+        >
           Logout
         </button>
       </div>

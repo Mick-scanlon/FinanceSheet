@@ -1,9 +1,12 @@
-import { jsx, jsxs } from "react/jsx-runtime";
+import { jsx, jsxs, Fragment } from "react/jsx-runtime";
 import { PassThrough } from "node:stream";
-import { createReadableStreamFromReadable } from "@remix-run/node";
-import { RemixServer, Outlet, Meta, Links, ScrollRestoration, Scripts } from "@remix-run/react";
+import { createReadableStreamFromReadable, createCookieSessionStorage, redirect } from "@remix-run/node";
+import { RemixServer, Outlet, Meta, Links, ScrollRestoration, Scripts, useNavigate, useLoaderData, Form } from "@remix-run/react";
 import { isbot } from "isbot";
 import { renderToPipeableStream } from "react-dom/server";
+import { PrismaClient } from "@prisma/client";
+import { zfd } from "zod-form-data";
+import { z } from "zod";
 const ABORT_DELAY = 5e3;
 function handleRequest(request, responseStatusCode, responseHeaders, remixContext, loadContext) {
   return isbot(request.headers.get("user-agent") || "") ? handleBotRequest(
@@ -138,161 +141,579 @@ const route0 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProper
   default: App,
   links
 }, Symbol.toStringTag, { value: "Module" }));
+const textInputCss = "shadow appearance-none border rounded py-2 px-3 text-grey-700 leading-tight focus:outline-none focus:shadow-outline";
+const blueButtonCss = "bg-green-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded";
+const redButtonCss = "bg-orange-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded";
+const expenseTableHeaders = ["Date", "Category", "Cost", "Shared"];
+var expenseEntryMap = /* @__PURE__ */ new Map([
+  ["Date", "date"],
+  ["Cost", "amount"],
+  ["Category", "category"],
+  ["Description", "description"],
+  ["Payment Used", "payment_method"]
+]);
+var expenseInputTypeMap = /* @__PURE__ */ new Map([
+  ["Date", "date"],
+  ["Cost", "number"],
+  ["Category", "text"],
+  ["Description", "text"],
+  ["Payment Used", "number"]
+]);
+const incomeTableHeaders = ["Date", "Gross Amount"];
+var incomeEntryMap = /* @__PURE__ */ new Map([
+  ["Date", "date"],
+  ["Gross Earnings", "amount_gross"],
+  ["Pre-Tax Deductions", "amount_pre"],
+  ["Taxes", "amount_tax"],
+  ["Post-Tax Deductions", "amount_post"]
+]);
+var incomeInputTypeMap = /* @__PURE__ */ new Map([
+  ["Date", "date"],
+  ["Gross Earnings", "number"],
+  ["Pre-Tax Deductions", "number"],
+  ["Taxes", "number"],
+  ["Post-Tax Deductions", "number"]
+]);
+function FormInput$2(props) {
+  return /* @__PURE__ */ jsxs(Fragment, { children: [
+    /* @__PURE__ */ jsx("label", { children: props.label }),
+    /* @__PURE__ */ jsx(
+      "input",
+      {
+        min: "0",
+        max: "99999",
+        step: "0.01",
+        className: textInputCss,
+        name: props.nameMap.get(props.label),
+        type: props.inputTypeMap.get(props.label),
+        required: true
+      }
+    )
+  ] });
+}
+function enterRecurringExpense() {
+  useNavigate();
+  let labels = [];
+  for (let label of expenseEntryMap.keys()) {
+    labels.push(label);
+  }
+  return /* @__PURE__ */ jsx("div", { className: "flex h-screen items-top justify-center", children: /* @__PURE__ */ jsx("div", { className: "flex flex-col gap-2 w-[200px]", children: /* @__PURE__ */ jsxs(
+    "form",
+    {
+      method: "POST",
+      className: "flex flex-col gap-2",
+      name: "recurringExpenseForm",
+      action: "/enterRecurring/expense",
+      children: [
+        /* @__PURE__ */ jsx("b", { className: "text-xl mt-6", children: "Add Recurring Expense" }),
+        labels.map((label) => /* @__PURE__ */ jsx(
+          FormInput$2,
+          {
+            label,
+            nameMap: expenseEntryMap,
+            inputTypeMap: expenseInputTypeMap
+          }
+        ))
+      ]
+    }
+  ) }) });
+}
+const route1 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+  __proto__: null,
+  default: enterRecurringExpense
+}, Symbol.toStringTag, { value: "Module" }));
+function enterRecurringIncome() {
+  return /* @__PURE__ */ jsx("div", { className: "flex h-screen items-top justify-center", children: /* @__PURE__ */ jsx("div", { className: "flex flex-col gap-2 w-[200px]", children: /* @__PURE__ */ jsx(
+    "form",
+    {
+      method: "POST",
+      className: "flex flex-col gap-2",
+      name: "recurringIncomeForm",
+      action: "/enterRecurring/income"
+    }
+  ) }) });
+}
+const route2 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+  __proto__: null,
+  default: enterRecurringIncome
+}, Symbol.toStringTag, { value: "Module" }));
+const expenseSchema = zfd.formData({
+  category: zfd.text(),
+  description: zfd.text(),
+  amount: zfd.numeric(),
+  date: zfd.text(),
+  paymentUsed: zfd.numeric(),
+  recurring: zfd.text(z.coerce.boolean()),
+  shared: zfd.text()
+});
+async function action$2({ request }) {
+  const {
+    category,
+    description,
+    amount,
+    date,
+    paymentUsed,
+    recurring,
+    shared
+  } = expenseSchema.parse(await request.formData());
+  const prisma = new PrismaClient();
+  const user_id = 1;
+  await prisma.expenses.create({
+    data: {
+      category,
+      description,
+      user_id,
+      amount,
+      date: new Date(date).toISOString(),
+      payment_method: paymentUsed,
+      recurring,
+      shared
+    }
+  });
+  return "";
+}
+function enterOneTimeExpense() {
+  const navigate = useNavigate();
+  let labels = [];
+  for (let label of expenseEntryMap.keys()) {
+    labels.push(label);
+  }
+  return /* @__PURE__ */ jsx("div", { className: "flex h-screen items-top justify-center", children: /* @__PURE__ */ jsx("div", { className: "flex flex-col items-left gap-16", children: /* @__PURE__ */ jsxs(
+    "form",
+    {
+      method: "POST",
+      className: "flex flex-col gap-2",
+      name: "expenseForm",
+      action: "/enterExpense",
+      children: [
+        /* @__PURE__ */ jsx("b", { className: "text-xl mt-6", children: "Add One Time Expense" }),
+        labels.map((label) => /* @__PURE__ */ jsx(FormInput$1, { label })),
+        /* @__PURE__ */ jsx("button", { type: "submit", className: blueButtonCss + " mt-6", children: "Submit" }),
+        /* @__PURE__ */ jsx(
+          "button",
+          {
+            onClick: () => navigate("../homePage"),
+            className: redButtonCss,
+            children: "Cancel"
+          }
+        )
+      ]
+    }
+  ) }) });
+}
+function FormInput$1(props) {
+  return /* @__PURE__ */ jsxs(Fragment, { children: [
+    /* @__PURE__ */ jsx("label", { children: props.label }),
+    /* @__PURE__ */ jsx(
+      "input",
+      {
+        min: "0",
+        max: "99999",
+        step: "0.01",
+        className: textInputCss,
+        name: expenseEntryMap.get(props.label),
+        type: expenseInputTypeMap.get(props.label),
+        required: true
+      }
+    )
+  ] });
+}
+const route3 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+  __proto__: null,
+  FormInput: FormInput$1,
+  action: action$2,
+  default: enterOneTimeExpense
+}, Symbol.toStringTag, { value: "Module" }));
+const incomeSchema = zfd.formData({
+  amount_gross: zfd.numeric(),
+  amount_tax: zfd.numeric(),
+  amount_pre: zfd.numeric(),
+  amount_post: zfd.numeric(),
+  date: zfd.text()
+});
+async function action$1({ request }) {
+  const { amount_gross, amount_pre, amount_tax, amount_post, date } = incomeSchema.parse(await request.formData());
+  const prisma = new PrismaClient();
+  const userId = 1;
+  await prisma.income.create({
+    data: {
+      amount_gross,
+      amount_tax,
+      amount_pre,
+      amount_post,
+      paid_date: new Date(date).toISOString(),
+      user_id: userId
+    }
+  });
+  return "";
+}
+function enterOneTimeIncome() {
+  const navigate = useNavigate();
+  let labels = [];
+  for (let label of incomeEntryMap.keys()) {
+    labels.push(label);
+  }
+  return /* @__PURE__ */ jsx("div", { className: "flex h-screen items-top justify-center", children: /* @__PURE__ */ jsxs("div", { className: "flex flex-col gap-2 w-[200px]", children: [
+    /* @__PURE__ */ jsxs(
+      "form",
+      {
+        method: "POST",
+        className: "flex flex-col gap-2",
+        name: "oneTimeIncomeForm",
+        action: "/enterOneTime/income",
+        children: [
+          /* @__PURE__ */ jsx("b", { className: "text-xl mt-6", children: "Add One-Time Income" }),
+          labels.map((label) => /* @__PURE__ */ jsx(FormInput, { label })),
+          /* @__PURE__ */ jsx("button", { type: "submit", className: blueButtonCss + " mt-6", children: "Submit" })
+        ]
+      }
+    ),
+    /* @__PURE__ */ jsx(
+      "button",
+      {
+        onClick: () => navigate("../homePage"),
+        className: redButtonCss,
+        children: "Cancel"
+      }
+    )
+  ] }) });
+}
+function FormInput(props) {
+  return /* @__PURE__ */ jsxs(Fragment, { children: [
+    /* @__PURE__ */ jsx("label", { children: props.label }),
+    /* @__PURE__ */ jsx(
+      "input",
+      {
+        min: "0",
+        max: "99999",
+        step: "0.01",
+        className: textInputCss,
+        name: incomeEntryMap.get(props.label),
+        type: incomeInputTypeMap.get(props.label),
+        required: true
+      }
+    )
+  ] });
+}
+const route4 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+  __proto__: null,
+  FormInput,
+  action: action$1,
+  default: enterOneTimeIncome
+}, Symbol.toStringTag, { value: "Module" }));
+function BaseRow(props) {
+  let linkAddress = "/view/".concat(
+    props.type,
+    "/".concat(props.content.id)
+  );
+  const contentArray = props.type == "expense" ? expenseParser(Object.entries(props.content)) : incomeParser(Object.entries(props.content));
+  const navigate = useNavigate();
+  return /* @__PURE__ */ jsxs("tr", { children: [
+    contentArray.map((data) => /* @__PURE__ */ jsx("td", { className: "text-center", children: data[1] })),
+    /* @__PURE__ */ jsx("td", { className: "text-center", children: /* @__PURE__ */ jsx(
+      "button",
+      {
+        onClick: () => navigate(linkAddress),
+        className: "bg-gray-700 w-full",
+        children: "View"
+      }
+    ) })
+  ] });
+}
+function expenseParser(contentArray) {
+  for (let i = 0; i < contentArray.length; i++) {
+    switch (contentArray[i][0]) {
+      case "id":
+        contentArray.splice(i, 1);
+        i--;
+        break;
+      case "user_id":
+      case "recurring":
+        contentArray[i][1] = contentArray[i][1] ? "Yes" : "No";
+        break;
+      case "date":
+        contentArray[i][1] = new Date(contentArray[i][1]).toLocaleString(
+          "en-us",
+          {
+            year: "numeric",
+            month: "numeric",
+            day: "numeric"
+          }
+        );
+        break;
+      case "amount":
+        contentArray[i][1] = new Intl.NumberFormat("en-US", {
+          style: "currency",
+          currency: "USD"
+        }).format(contentArray[i][1]);
+        break;
+    }
+  }
+  return contentArray;
+}
+function incomeParser(contentArray) {
+  for (let i = 0; i < contentArray.length; i++) {
+    switch (contentArray[i][0]) {
+      case "id":
+        contentArray.splice(i, 1);
+        i--;
+        break;
+      case "user_id":
+      case "paid_date":
+        contentArray[i][1] = new Date(contentArray[i][1]).toLocaleString(
+          "en-us",
+          {
+            year: "numeric",
+            month: "numeric",
+            day: "numeric"
+          }
+        );
+        break;
+      case "amount_gross":
+      case "amount_post":
+      case "amount_pre":
+      case "amount_tax":
+        contentArray[i][1] = new Intl.NumberFormat("en-US", {
+          style: "currency",
+          currency: "USD"
+        }).format(contentArray[i][1]);
+        break;
+    }
+  }
+  return contentArray;
+}
+function BaseTable(props) {
+  return /* @__PURE__ */ jsxs("table", { className: "w-[300px]", children: [
+    /* @__PURE__ */ jsxs("tr", { children: [
+      props.headers.map((header) => /* @__PURE__ */ jsx("th", { className: "align-middle", children: header })),
+      /* @__PURE__ */ jsx("th", { className: "text-center", children: "View" })
+    ] }),
+    props.content.map((content) => /* @__PURE__ */ jsx(BaseRow, { content, type: props.type }, content))
+  ] });
+}
+const loader = async () => {
+  const prisma = new PrismaClient();
+  const userId = 1;
+  const expenses = await prisma.expenses.findMany({
+    where: { user_id: userId },
+    select: {
+      id: true,
+      date: true,
+      category: true,
+      amount: true,
+      shared: true
+    },
+    take: 5
+  });
+  const income = await prisma.income.findMany({
+    where: { user_id: userId },
+    select: {
+      id: true,
+      paid_date: true,
+      amount_gross: true
+    },
+    orderBy: { paid_date: "desc" },
+    take: 3
+  });
+  return [expenses, income];
+};
+function homePage() {
+  const navigate = useNavigate();
+  const expenses = useLoaderData()[0];
+  const income = useLoaderData()[1];
+  return /* @__PURE__ */ jsx("div", { className: "flex h-screen items-top justify-center", children: /* @__PURE__ */ jsxs("div", { className: "flex flex-col items-center gap-5 w-[300px]", children: [
+    /* @__PURE__ */ jsx("header", { className: "flex mt-5 flex-col items-center gap-9", children: /* @__PURE__ */ jsx("h1", { className: "leading text-2xl font-bold text-gray-800 dark:text-gray-100", children: "MyFinanceApp" }) }),
+    /* @__PURE__ */ jsx("h1", { className: "text-xl", children: "Add One-Time" }),
+    /* @__PURE__ */ jsxs("div", { className: "h-[44px] space-x-5", children: [
+      /* @__PURE__ */ jsx(
+        "button",
+        {
+          onClick: () => navigate("/enterOneTime/expense"),
+          className: blueButtonCss + " float-left",
+          children: "Expense"
+        }
+      ),
+      /* @__PURE__ */ jsx(
+        "button",
+        {
+          onClick: () => navigate("/enterOneTime/income"),
+          className: blueButtonCss + " float-right",
+          children: "Income"
+        }
+      )
+    ] }),
+    /* @__PURE__ */ jsx("h1", { className: "text-xl", children: "Add Recurring" }),
+    /* @__PURE__ */ jsxs("div", { className: "h-[44px] space-x-5", children: [
+      /* @__PURE__ */ jsx(
+        "button",
+        {
+          onClick: () => navigate("/enterRecurring/expense"),
+          className: blueButtonCss + " float-left",
+          children: "Expense"
+        }
+      ),
+      /* @__PURE__ */ jsx(
+        "button",
+        {
+          onClick: () => navigate("/enterRecurring/income"),
+          className: blueButtonCss + " float-right",
+          children: "Income"
+        }
+      )
+    ] }),
+    /* @__PURE__ */ jsxs("div", { className: "flex flex-col items-center ", children: [
+      /* @__PURE__ */ jsx("h1", { className: "text-xl", children: "Expenses" }),
+      /* @__PURE__ */ jsx(
+        BaseTable,
+        {
+          content: expenses,
+          headers: expenseTableHeaders,
+          type: "expense"
+        }
+      ),
+      /* @__PURE__ */ jsx(
+        "button",
+        {
+          onClick: () => navigate("/viewExpenses"),
+          className: blueButtonCss + " mt-2",
+          children: "View All Expenses"
+        }
+      ),
+      /* @__PURE__ */ jsx("h1", { className: "text-xl mt-4", children: "Income" }),
+      /* @__PURE__ */ jsx(
+        BaseTable,
+        {
+          content: income,
+          headers: incomeTableHeaders,
+          type: "income"
+        }
+      ),
+      /* @__PURE__ */ jsx(
+        "button",
+        {
+          onClick: () => navigate("/viewIncome"),
+          className: blueButtonCss + " mt-2",
+          children: "View All Income"
+        }
+      )
+    ] }),
+    /* @__PURE__ */ jsx(
+      "button",
+      {
+        onClick: () => navigate("/"),
+        className: redButtonCss + " mt-5",
+        children: "Logout"
+      }
+    )
+  ] }) });
+}
+const route5 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+  __proto__: null,
+  default: homePage,
+  loader
+}, Symbol.toStringTag, { value: "Module" }));
 const meta = () => {
   return [
-    { title: "MyFinanceApp" },
-    { name: "description", content: "Welcome to the danger!" }
+    { title: "MyFinances" },
+    { name: "description", content: "Welcome to Remix!" }
   ];
 };
 function Index() {
-  return /* @__PURE__ */ jsx("div", { className: "flex h-screen items-center justify-center", children: /* @__PURE__ */ jsxs("div", { className: "flex flex-col items-center gap-16", children: [
-    /* @__PURE__ */ jsxs("header", { className: "flex flex-col items-center gap-9", children: [
-      /* @__PURE__ */ jsxs("h1", { className: "leading text-2xl font-bold text-gray-800 dark:text-gray-100", children: [
-        "Welcome to ",
-        /* @__PURE__ */ jsx("span", { className: "sr-only", children: "DANGER" })
-      ] }),
-      /* @__PURE__ */ jsxs("div", { className: "h-[144px] w-[434px]", children: [
-        /* @__PURE__ */ jsx(
-          "img",
-          {
-            src: "/logo-light.png",
-            alt: "Remix",
-            className: "block w-full dark:hidden"
-          }
-        ),
-        /* @__PURE__ */ jsx(
-          "img",
-          {
-            src: "/logo-dark.png",
-            alt: "Remix",
-            className: "hidden w-full dark:block"
-          }
-        )
-      ] })
-    ] }),
-    /* @__PURE__ */ jsxs("nav", { className: "flex flex-col items-center justify-center gap-4 rounded-3xl border border-gray-200 p-6 dark:border-gray-700", children: [
-      /* @__PURE__ */ jsx("p", { className: "leading-6 text-gray-700 dark:text-gray-200", children: "What's next?" }),
-      /* @__PURE__ */ jsx("ul", { children: resources.map(({ href, text, icon }) => /* @__PURE__ */ jsx("li", { children: /* @__PURE__ */ jsxs(
-        "a",
-        {
-          className: "group flex items-center gap-3 self-stretch p-3 leading-normal text-blue-700 hover:underline dark:text-blue-500",
-          href,
-          target: "_blank",
-          rel: "noreferrer",
-          children: [
-            icon,
-            text
-          ]
-        }
-      ) }, href)) })
-    ] })
-  ] }) });
+  const navigate = useNavigate();
+  return /* @__PURE__ */ jsx("div", { className: "flex h-screen items-center justify-center", children: /* @__PURE__ */ jsx(
+    "button",
+    {
+      onClick: () => navigate("homePage"),
+      className: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded float-left",
+      children: "Login"
+    }
+  ) });
 }
-const resources = [
-  {
-    href: "https://remix.run/start/quickstart",
-    text: "Quick Start (5 min)",
-    icon: /* @__PURE__ */ jsx(
-      "svg",
-      {
-        xmlns: "http://www.w3.org/2000/svg",
-        width: "24",
-        height: "20",
-        viewBox: "0 0 20 20",
-        fill: "none",
-        className: "stroke-gray-600 group-hover:stroke-current dark:stroke-gray-300",
-        children: /* @__PURE__ */ jsx(
-          "path",
-          {
-            d: "M8.51851 12.0741L7.92592 18L15.6296 9.7037L11.4815 7.33333L12.0741 2L4.37036 10.2963L8.51851 12.0741Z",
-            strokeWidth: "1.5",
-            strokeLinecap: "round",
-            strokeLinejoin: "round"
-          }
-        )
-      }
-    )
-  },
-  {
-    href: "https://remix.run/start/tutorial",
-    text: "Tutorial (30 min)",
-    icon: /* @__PURE__ */ jsx(
-      "svg",
-      {
-        xmlns: "http://www.w3.org/2000/svg",
-        width: "24",
-        height: "20",
-        viewBox: "0 0 20 20",
-        fill: "none",
-        className: "stroke-gray-600 group-hover:stroke-current dark:stroke-gray-300",
-        children: /* @__PURE__ */ jsx(
-          "path",
-          {
-            d: "M4.561 12.749L3.15503 14.1549M3.00811 8.99944H1.01978M3.15503 3.84489L4.561 5.2508M8.3107 1.70923L8.3107 3.69749M13.4655 3.84489L12.0595 5.2508M18.1868 17.0974L16.635 18.6491C16.4636 18.8205 16.1858 18.8205 16.0144 18.6491L13.568 16.2028C13.383 16.0178 13.0784 16.0347 12.915 16.239L11.2697 18.2956C11.047 18.5739 10.6029 18.4847 10.505 18.142L7.85215 8.85711C7.75756 8.52603 8.06365 8.21994 8.39472 8.31453L17.6796 10.9673C18.0223 11.0653 18.1115 11.5094 17.8332 11.7321L15.7766 13.3773C15.5723 13.5408 15.5554 13.8454 15.7404 14.0304L18.1868 16.4767C18.3582 16.6481 18.3582 16.926 18.1868 17.0974Z",
-            strokeWidth: "1.5",
-            strokeLinecap: "round",
-            strokeLinejoin: "round"
-          }
-        )
-      }
-    )
-  },
-  {
-    href: "https://remix.run/docs",
-    text: "Remix Docs",
-    icon: /* @__PURE__ */ jsx(
-      "svg",
-      {
-        xmlns: "http://www.w3.org/2000/svg",
-        width: "24",
-        height: "20",
-        viewBox: "0 0 20 20",
-        fill: "none",
-        className: "stroke-gray-600 group-hover:stroke-current dark:stroke-gray-300",
-        children: /* @__PURE__ */ jsx(
-          "path",
-          {
-            d: "M9.99981 10.0751V9.99992M17.4688 17.4688C15.889 19.0485 11.2645 16.9853 7.13958 12.8604C3.01467 8.73546 0.951405 4.11091 2.53116 2.53116C4.11091 0.951405 8.73546 3.01467 12.8604 7.13958C16.9853 11.2645 19.0485 15.889 17.4688 17.4688ZM2.53132 17.4688C0.951566 15.8891 3.01483 11.2645 7.13974 7.13963C11.2647 3.01471 15.8892 0.951453 17.469 2.53121C19.0487 4.11096 16.9854 8.73551 12.8605 12.8604C8.73562 16.9853 4.11107 19.0486 2.53132 17.4688Z",
-            strokeWidth: "1.5",
-            strokeLinecap: "round"
-          }
-        )
-      }
-    )
-  },
-  {
-    href: "https://rmx.as/discord",
-    text: "Join Discord",
-    icon: /* @__PURE__ */ jsx(
-      "svg",
-      {
-        xmlns: "http://www.w3.org/2000/svg",
-        width: "24",
-        height: "20",
-        viewBox: "0 0 24 20",
-        fill: "none",
-        className: "stroke-gray-600 group-hover:stroke-current dark:stroke-gray-300",
-        children: /* @__PURE__ */ jsx(
-          "path",
-          {
-            d: "M15.0686 1.25995L14.5477 1.17423L14.2913 1.63578C14.1754 1.84439 14.0545 2.08275 13.9422 2.31963C12.6461 2.16488 11.3406 2.16505 10.0445 2.32014C9.92822 2.08178 9.80478 1.84975 9.67412 1.62413L9.41449 1.17584L8.90333 1.25995C7.33547 1.51794 5.80717 1.99419 4.37748 2.66939L4.19 2.75793L4.07461 2.93019C1.23864 7.16437 0.46302 11.3053 0.838165 15.3924L0.868838 15.7266L1.13844 15.9264C2.81818 17.1714 4.68053 18.1233 6.68582 18.719L7.18892 18.8684L7.50166 18.4469C7.96179 17.8268 8.36504 17.1824 8.709 16.4944L8.71099 16.4904C10.8645 17.0471 13.128 17.0485 15.2821 16.4947C15.6261 17.1826 16.0293 17.8269 16.4892 18.4469L16.805 18.8725L17.3116 18.717C19.3056 18.105 21.1876 17.1751 22.8559 15.9238L23.1224 15.724L23.1528 15.3923C23.5873 10.6524 22.3579 6.53306 19.8947 2.90714L19.7759 2.73227L19.5833 2.64518C18.1437 1.99439 16.6386 1.51826 15.0686 1.25995ZM16.6074 10.7755L16.6074 10.7756C16.5934 11.6409 16.0212 12.1444 15.4783 12.1444C14.9297 12.1444 14.3493 11.6173 14.3493 10.7877C14.3493 9.94885 14.9378 9.41192 15.4783 9.41192C16.0471 9.41192 16.6209 9.93851 16.6074 10.7755ZM8.49373 12.1444C7.94513 12.1444 7.36471 11.6173 7.36471 10.7877C7.36471 9.94885 7.95323 9.41192 8.49373 9.41192C9.06038 9.41192 9.63892 9.93712 9.6417 10.7815C9.62517 11.6239 9.05462 12.1444 8.49373 12.1444Z",
-            strokeWidth: "1.5"
-          }
-        )
-      }
-    )
-  }
-];
-const route1 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const route6 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   default: Index,
   meta
 }, Symbol.toStringTag, { value: "Module" }));
-const serverManifest = { "entry": { "module": "/assets/entry.client-ZUd_ivrw.js", "imports": ["/assets/jsx-runtime-56DGgGmo.js", "/assets/components-IbwLOKDL.js"], "css": [] }, "routes": { "root": { "id": "root", "parentId": void 0, "path": "", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/root-BJRh3OzC.js", "imports": ["/assets/jsx-runtime-56DGgGmo.js", "/assets/components-IbwLOKDL.js"], "css": ["/assets/root-CuTOgBRU.css"] }, "routes/_index": { "id": "routes/_index", "parentId": "root", "path": void 0, "index": true, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_index-vuQ_cZBD.js", "imports": ["/assets/jsx-runtime-56DGgGmo.js"], "css": [] } }, "url": "/assets/manifest-04e8b5cc.js", "version": "04e8b5cc" };
+const USER_SESSION_KEY = "userId";
+const sessionStorage = createCookieSessionStorage({
+  cookie: {
+    name: "__session",
+    httpOnly: true,
+    path: "/",
+    sameSite: "lax",
+    secrets: ["process.env.SESSION_SECRET"],
+    secure: process.env.NODE_ENV === "production"
+  }
+});
+async function getSession(request) {
+  const cookie = request.headers.get("Cookie");
+  return sessionStorage.getSession(cookie);
+}
+async function createUserSession({
+  request,
+  userId
+}) {
+  const session = await getSession(request);
+  session.set(USER_SESSION_KEY, userId);
+  return redirect("/", {
+    headers: {
+      "Set-Cookie": await sessionStorage.commitSession(session, {
+        maxAge: 60 * 60 * 24 * 7
+        // 7 days,
+      })
+    }
+  });
+}
+function verifyLogin(email, password) {
+  var result = { id: 1 };
+  return result;
+}
+async function action({ request }) {
+  const formData = await request.formData();
+  formData.get("email");
+  formData.get("password");
+  const user = await verifyLogin();
+  return createUserSession({
+    request,
+    userId: user.id
+  });
+}
+function LoginPage() {
+  return /* @__PURE__ */ jsxs(Form, { method: "post", children: [
+    /* @__PURE__ */ jsx("label", { htmlFor: "email", children: "Email address" }),
+    /* @__PURE__ */ jsx(
+      "input",
+      {
+        id: "email",
+        required: true,
+        name: "email",
+        type: "email",
+        autoComplete: "email"
+      }
+    ),
+    /* @__PURE__ */ jsx("label", { htmlFor: "password", children: "Password" }),
+    /* @__PURE__ */ jsx(
+      "input",
+      {
+        id: "password",
+        name: "password",
+        type: "password",
+        autoComplete: "current-password"
+      }
+    ),
+    /* @__PURE__ */ jsx("button", { type: "submit", children: "Log in" })
+  ] });
+}
+const route7 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+  __proto__: null,
+  action,
+  default: LoginPage
+}, Symbol.toStringTag, { value: "Module" }));
+const serverManifest = { "entry": { "module": "/assets/entry.client-BMPSNI6X.js", "imports": ["/assets/jsx-runtime-56DGgGmo.js", "/assets/components-EurMw082.js", "/assets/index-C1cPRAqT.js"], "css": [] }, "routes": { "root": { "id": "root", "parentId": void 0, "path": "", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/root-B3UQFTW8.js", "imports": ["/assets/jsx-runtime-56DGgGmo.js", "/assets/components-EurMw082.js", "/assets/index-C1cPRAqT.js"], "css": ["/assets/root-Dx5MHpWB.css"] }, "routes/enterRecurring.expense": { "id": "routes/enterRecurring.expense", "parentId": "root", "path": "enterRecurring/expense", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/enterRecurring.expense-ChG7xJ0y.js", "imports": ["/assets/jsx-runtime-56DGgGmo.js", "/assets/constants-CiydV2gG.js", "/assets/index-C1cPRAqT.js"], "css": [] }, "routes/enterRecurring.income": { "id": "routes/enterRecurring.income", "parentId": "root", "path": "enterRecurring/income", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/enterRecurring.income-D7nEyohl.js", "imports": ["/assets/jsx-runtime-56DGgGmo.js"], "css": [] }, "routes/enterOneTime.expense": { "id": "routes/enterOneTime.expense", "parentId": "root", "path": "enterOneTime/expense", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/enterOneTime.expense-BBbzfl7n.js", "imports": ["/assets/jsx-runtime-56DGgGmo.js", "/assets/constants-CiydV2gG.js", "/assets/index-C1cPRAqT.js"], "css": [] }, "routes/enterOneTime.income": { "id": "routes/enterOneTime.income", "parentId": "root", "path": "enterOneTime/income", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/enterOneTime.income-D1WFBA2H.js", "imports": ["/assets/jsx-runtime-56DGgGmo.js", "/assets/constants-CiydV2gG.js", "/assets/index-C1cPRAqT.js"], "css": [] }, "routes/homePage": { "id": "routes/homePage", "parentId": "root", "path": "homePage", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/homePage-BG8VTQM0.js", "imports": ["/assets/jsx-runtime-56DGgGmo.js", "/assets/constants-CiydV2gG.js", "/assets/index-C1cPRAqT.js", "/assets/components-EurMw082.js"], "css": [] }, "routes/_index": { "id": "routes/_index", "parentId": "root", "path": void 0, "index": true, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_index-CeEY-iG1.js", "imports": ["/assets/jsx-runtime-56DGgGmo.js", "/assets/index-C1cPRAqT.js"], "css": [] }, "routes/login": { "id": "routes/login", "parentId": "root", "path": "login", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/login-C_FJT1nn.js", "imports": ["/assets/jsx-runtime-56DGgGmo.js", "/assets/components-EurMw082.js", "/assets/index-C1cPRAqT.js"], "css": [] } }, "url": "/assets/manifest-04183320.js", "version": "04183320" };
 const mode = "production";
 const assetsBuildDirectory = "build\\client";
 const basename = "/";
-const future = { "v3_fetcherPersist": false, "v3_relativeSplatPath": false, "v3_throwAbortReason": false, "unstable_singleFetch": false, "unstable_lazyRouteDiscovery": false, "unstable_optimizeDeps": false };
+const future = { "v3_fetcherPersist": false, "v3_relativeSplatPath": false, "v3_throwAbortReason": false, "v3_singleFetch": false, "v3_lazyRouteDiscovery": false, "unstable_optimizeDeps": false };
 const isSpaMode = false;
 const publicPath = "/";
 const entry = { module: entryServer };
@@ -305,13 +726,61 @@ const routes = {
     caseSensitive: void 0,
     module: route0
   },
+  "routes/enterRecurring.expense": {
+    id: "routes/enterRecurring.expense",
+    parentId: "root",
+    path: "enterRecurring/expense",
+    index: void 0,
+    caseSensitive: void 0,
+    module: route1
+  },
+  "routes/enterRecurring.income": {
+    id: "routes/enterRecurring.income",
+    parentId: "root",
+    path: "enterRecurring/income",
+    index: void 0,
+    caseSensitive: void 0,
+    module: route2
+  },
+  "routes/enterOneTime.expense": {
+    id: "routes/enterOneTime.expense",
+    parentId: "root",
+    path: "enterOneTime/expense",
+    index: void 0,
+    caseSensitive: void 0,
+    module: route3
+  },
+  "routes/enterOneTime.income": {
+    id: "routes/enterOneTime.income",
+    parentId: "root",
+    path: "enterOneTime/income",
+    index: void 0,
+    caseSensitive: void 0,
+    module: route4
+  },
+  "routes/homePage": {
+    id: "routes/homePage",
+    parentId: "root",
+    path: "homePage",
+    index: void 0,
+    caseSensitive: void 0,
+    module: route5
+  },
   "routes/_index": {
     id: "routes/_index",
     parentId: "root",
     path: void 0,
     index: true,
     caseSensitive: void 0,
-    module: route1
+    module: route6
+  },
+  "routes/login": {
+    id: "routes/login",
+    parentId: "root",
+    path: "login",
+    index: void 0,
+    caseSensitive: void 0,
+    module: route7
   }
 };
 export {
